@@ -6,3 +6,6 @@ recurring-ical-events==1.1.0b0
 six==1.16.0
 x-wr-timezone==0.0.5
 etlutils
+pylint
+black
+mypy
