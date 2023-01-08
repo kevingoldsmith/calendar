@@ -9,4 +9,4 @@ mypy:
 list:
 	@grep '^[^#[:space:]].*:' Makefile
 
-all: lint black mypy
+all: black lint mypy
