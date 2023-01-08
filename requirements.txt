@@ -9,3 +9,4 @@ etlutils
 pylint
 black
 mypy
+pytest
