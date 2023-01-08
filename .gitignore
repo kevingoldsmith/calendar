@@ -1,1 +1,3 @@
 calendar-venv/
+parse_calendar.log
+*.ics
