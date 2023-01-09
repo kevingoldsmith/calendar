@@ -1,65 +1,106 @@
+"""parse a ical calendar file and produce a list of events and a people
+"""
+
 import argparse
 import configparser
 import logging
+from typing import Dict, Any, TextIO
 
-from icalendar import Calendar
-import recurring_ical_events
-import x_wr_timezone
+from icalendar import Calendar  # type: ignore
+import recurring_ical_events  # type: ignore
+import x_wr_timezone  # type: ignore
 
 _DEFAULT_DATA_DIR = "data"
-_CONFIG_FILE = "config.ini"
+_CONFIG_FILE = "parse_calendar.ini"
+_LOG_FILE = "parse_calendar.log"
+_CONSOLE_LEVEL = logging.INFO
+_FILE_LEVEL = logging.INFO
 
-_config_parser = None
-_console_log_level = logging.INFO
-_logfile_log_level = logging.INFO
-_logfile_name = "parse_calendar.log"
-_logger = logging.getLogger(__name__)
+_logger = logging.getLogger(
+    __name__ if __name__ != "__main__" else "parse_calendar"
+)  # pylint: disable=C0103
 
 
-def load_config_file() -> None:
-    global _config_parser
-    _config_parser = configparser.ConfigParser()
-    _config_parser.read(_CONFIG_FILE)
+def load_config_file(base_config: dict) -> configparser.ConfigParser:
+    """Load the configuration file and initialize any variables
+
+    Args:
+        base_config (dict): the default configuration values
+
+    Returns:
+        configparser.ConfigParser: the config_parser object in case you want to
+        use it for saving the configuration
+    """
+    parser = configparser.ConfigParser()
+    parser.read(_CONFIG_FILE)
     # set variables from config
-    if "logging" in _config_parser:
-        logging_config = _config_parser["logging"]
-        _console_log_level = logging_config.get("console_log_level", _console_log_level)
-        _logfile_log_level = logging_config.get("logfile_log_level", _logfile_log_level)
-        _logfile_name = logging_config.get("logfile_name", _logfile_name)
+    if "logging" in parser:
+        logging_config = parser["logging"]
+        base_config["console_log_level"] = int(
+            logging_config.get(
+                "console_log_level", str(base_config["console_log_level"])
+            )
+        )
+        base_config["logfile_log_level"] = int(
+            logging_config.get(
+                "logfile_log_level", str(base_config["logfile_log_level"])
+            )
+        )
+        base_config["logfile_name"] = logging_config.get(
+            "logfile_name", base_config["logfile_name"]
+        )
+    return parser
 
 
-def update_config_file() -> None:
-    global _config_parser
-    # if this is called before load_config_file, assume we are creating a config file?
-    # if that doesn't make sense, then this should be an exception instead
-    if not _config_parser:
-        _config_parser = configparser.ConfigParser()
-        # raise RuntimeError("update_config_file called before load_config_file")
+def update_config_file(parser: configparser.ConfigParser) -> None:
+    """Save the configuration file. A later version of this should take in any
+    non global variables as a parameter
+
+    Args:
+        parser (configparser.ConfigParser): the config parser object
+
+    Raises:
+        ValueError: if the parser is None
+    """
+    if not parser:
+        raise ValueError("update_config_file called before load_config_file")
     # config_parser['Login Parameters']['refresh_token'] = token_dict['refresh_token']
-    with open(_CONFIG_FILE, "w") as configfile:
-        _config_parser.write(configfile)
+    with open(_CONFIG_FILE, "w", encoding="UTF-8") as configfile:
+        parser.write(configfile)
 
 
-def initialize_logging() -> None:
+def initialize_logging(
+    logfile_name: str, console_log_level: int, logfile_log_level: int
+) -> None:
+    """Initialize logging settings
+
+    Args:
+        logfile_name (str): the file name to save the file log to, use None to not save a log file
+        console_log_level (int): the logging level for console log messages
+        logfile_log_level (int): the logging level for file log messages
+    """
     _logger.setLevel(logging.DEBUG)
     formatter = logging.Formatter("%(name)s - %(asctime)s (%(levelname)s): %(message)s")
     formatter.datefmt = "%Y-%m-%d %H:%M:%S %z"
-    ch = logging.StreamHandler()
-    ch.setLevel(_console_log_level)
-    ch.setFormatter(formatter)
-    _logger.addHandler(ch)
-    fh = logging.FileHandler(_logfile_name)
-    fh.setLevel(_logfile_log_level)
-    fh.setFormatter(formatter)
-    _logger.addHandler(fh)
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(console_log_level)
+    console_handler.setFormatter(formatter)
+    _logger.addHandler(console_handler)
+    if logfile_name:
+        file_handler = logging.FileHandler(logfile_name)
+        file_handler.setLevel(logfile_log_level)
+        file_handler.setFormatter(formatter)
+        _logger.addHandler(file_handler)
 
 
-def main() -> None:
+def main(calendar_file: TextIO) -> None:
+    """main application logic"""
     start_date = (2023, 1, 1)
     end_date = (2023, 1, 31)
 
-    with open("distrokid.ics", "rb") as file:
-        calendar = Calendar.from_ical(file.read())
+    calendar = Calendar.from_ical(calendar_file.read())
+    _logger.info("parsing %s", calendar_file.name)
+    calendar_file.close()
     new_calendar = x_wr_timezone.to_standard(calendar)
     events = recurring_ical_events.of(new_calendar).between(start_date, end_date)
 
@@ -76,36 +117,30 @@ def main() -> None:
             print(f"\torganizer: {event['organizer']}")
         print(f"\t{event['status']}")
 
-    """
-    for component in new_calendar.walk():
-        if component.name == "VEVENT":
-            print(component.get('summary'))
-            print(f"\t{component.get('dtstart').dt} - {component.get('dtend').dt}")
-            print(component.get('description'))
-            print(f"\ttimestamp:{component.get('dtstamp').dt}")
-            if component.get('attendee'):
-                for attendee in component.get('attendee'):
-                    print(f"\tattendee: {attendee}")
-            print(f"\torganizer: {component.get('organizer')}")
-            print(f"\t{component.get('status')}")
-    """
-
 
 # when run as a script, do initialization
 if __name__ == "__main__":
-    load_config_file()
+    config: Dict[str, Any] = {
+        "logfile_name": _LOG_FILE,
+        "console_log_level": _CONSOLE_LEVEL,
+        "logfile_log_level": _FILE_LEVEL,
+    }
+    config_parser = load_config_file(config)
 
     # command-line arguments override config file settings
-    parser = argparse.ArgumentParser(
-        description="Convert calendar file into json event and people list."
+    arg_parser = argparse.ArgumentParser(description="do something interesting.")
+    arg_parser.add_argument("--verbose", "-v", action="store_true", dest="verbose")
+    arg_parser.add_argument(
+        "--verbose_log", "-V", action="store_true", dest="verbose_log"
     )
-    parser.add_argument("--verbose", "-v", action="store_true", dest="verbose")
-    parser.add_argument("--verbose_log", "-V", action="store_true", dest="verbose_log")
-    ns = parser.parse_args()
+    arg_parser.add_argument("calendar_file", type=argparse.FileType("rb"))
+    ns = arg_parser.parse_args()
     if ns.verbose:
-        _console_log_level = logging.DEBUG
+        config["console_log_level"] = logging.DEBUG
     if ns.verbose_log:
-        _logfile_log_level = logging.DEBUG
+        config["logfile_log_level"] = logging.DEBUG
 
-    initialize_logging()
-    main()
+    initialize_logging(
+        config["logfile_name"], config["console_log_level"], config["logfile_log_level"]
+    )
+    main(ns.calendar_file)
