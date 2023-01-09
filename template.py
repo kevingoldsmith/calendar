@@ -7,6 +7,9 @@ import logging
 from typing import Dict, Any
 
 
+# TODO:
+#   added config param to append a date to the logfile name
+
 _CONFIG_FILE = "template.ini"  # replace with actual module name
 _LOG_FILE = "template.log"  # replace with actual module name
 _CONSOLE_LEVEL = logging.INFO
