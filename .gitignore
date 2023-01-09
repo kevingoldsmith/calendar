@@ -1,3 +1,5 @@
 calendar-venv/
 *.log
 *.ics
+*.ini
+__pycache__
