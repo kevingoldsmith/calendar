@@ -1,3 +1,7 @@
+init:
+	python -m venv venv
+	source venv/bin/activate; pip install -r requirements.txt
+
 lint: ; @for py in *.py; do echo "Linting $$py"; pylint -rn $$py; done
 
 black:
@@ -8,5 +12,8 @@ mypy:
 
 list:
 	@grep '^[^#[:space:]].*:' Makefile
+
+test:
+	pytest
 
 all: black lint mypy

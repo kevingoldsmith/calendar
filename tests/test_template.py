@@ -1,4 +1,5 @@
 import pytest
 
-def test_template():
+
+def test_template() -> None:
     pass
