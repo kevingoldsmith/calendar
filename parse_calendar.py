@@ -10,6 +10,8 @@ from icalendar import Calendar  # type: ignore
 import recurring_ical_events  # type: ignore
 import x_wr_timezone  # type: ignore
 
+from contact import Contact
+
 _DEFAULT_DATA_DIR = "data"
 _CONFIG_FILE = "parse_calendar.ini"
 _LOG_FILE = "parse_calendar.log"
@@ -93,24 +95,21 @@ def initialize_logging(
         _logger.addHandler(file_handler)
 
 
-def get_person(event_person) -> Dict|None:
-    return_person = {}
-    if event_person.startswith("mailto:"):
-        return_person["e-mail"] = event_person[7:]
+def get_person(event_person: str) -> Contact | None:
+    """
+    get_person given a person from an event, return a Contact object or None
 
-        # not a great way to infer a name, but if this is
-        # all we have...
-        at_pos = return_person["e-mail"].find('@')
-        name = return_person["e-mail"][:at_pos]
-        period_pos = name.find('.')
-        if period_pos > -1:
-            return_person["first_name"] = name[:period_pos]
-            return_person["last_name"] = name[period_pos+1:]
-        else:
-            return_person["first_name"] = name
-    if len(return_person.keys()) == 0:
-        return None
-    return return_person
+    Args:
+        event_person (str): the contact string
+
+    Returns:
+        Contact|None: a Contact object or None if one could not be constructed
+    """
+    if event_person.startswith("mailto:"):
+        email = event_person[7:]
+        return Contact(email=email)
+    _logger.error("person from contact doesn't start with mailto: %s", event_person)
+    return None
 
 
 def main(calendar_file: TextIO) -> None:
@@ -125,21 +124,21 @@ def main(calendar_file: TextIO) -> None:
     events = recurring_ical_events.of(new_calendar).between(start_date, end_date)
 
     for event in events:
-        if event['status'] != 'CONFIRMED':
+        if event["status"] != "CONFIRMED":
             continue
 
-#        print(event["summary"])
-#        print(f"\t{event['dtstart'].dt} - {event['dtend'].dt}")
-#        if "description" in event:
-#            print("\t" + event["description"])
-#        print(f"\ttimestamp:{event['dtstamp'].dt}")
+        #        print(event["summary"])
+        #        print(f"\t{event['dtstart'].dt} - {event['dtend'].dt}")
+        #        if "description" in event:
+        #            print("\t" + event["description"])
+        #        print(f"\ttimestamp:{event['dtstamp'].dt}")
         if "attendee" in event:
             for attendee in event["attendee"]:
                 print(get_person(attendee))
-                #print(f"\tattendee: {attendee}")
+                # print(f"\tattendee: {attendee}")
         if "organizer" in event:
-            print(get_person(attendee))
-            #print(f"\torganizer: {event['organizer']}")
+            print(get_person(event["organizer"]))
+            # print(f"\torganizer: {event['organizer']}")
 
 
 # when run as a script, do initialization

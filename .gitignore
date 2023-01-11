@@ -3,3 +3,4 @@ calendar-venv/
 *.ics
 *.ini
 __pycache__
+.DS_Store
