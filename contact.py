@@ -110,4 +110,7 @@ class Contact:
             self.first_name = other.first_name
         if not self.last_name and other.last_name:
             self.last_name = other.last_name
-        self.email = list(set(*self.email, *other.email))
+        print(f"self.email {self.email} - other.email {other.email}")
+        self.email.extend(other.email)
+        if len(self.email) > 0:
+            self.email = list(set(self.email))

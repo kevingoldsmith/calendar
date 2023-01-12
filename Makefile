@@ -16,4 +16,4 @@ list:
 test:
 	pytest
 
-all: black lint mypy
+all: black lint mypy test
