@@ -66,7 +66,7 @@ class Contact:
 
     def __str__(self) -> str:
         """
-        __str__ _summary_
+        __str__ get a string representation of the object
 
         Returns:
             str: a string representation of the object
@@ -78,10 +78,10 @@ class Contact:
         __eq__ overrides the default equality
 
         Args:
-            __o (object): _description_
+            __o (object): the object being compared
 
         Returns:
-            bool: _description_
+            bool: if the two objects are equal
         """
         if not isinstance(__o, self.__class__):
             return False
@@ -94,13 +94,13 @@ class Contact:
 
     def merge(self, other: object) -> None:
         """
-        merge _summary_
+        merge merge another object into this one
 
         Args:
-            other (object): _description_
+            other (object): the object to merge into this
 
         Raises:
-            ValueError: _description_
+            ValueError: if the passed in object is not a Contact
         """
         if not isinstance(other, self.__class__):
             raise ValueError(
@@ -110,7 +110,6 @@ class Contact:
             self.first_name = other.first_name
         if not self.last_name and other.last_name:
             self.last_name = other.last_name
-        print(f"self.email {self.email} - other.email {other.email}")
         self.email.extend(other.email)
         if len(self.email) > 0:
             self.email = list(set(self.email))
