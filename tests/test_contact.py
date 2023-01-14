@@ -6,6 +6,9 @@ def test_invalid_init() -> None:
     with pytest.raises(ValueError) as excinfo:
         a = contact.Contact()
     assert "initialization parameters" in str(excinfo.value)
+    with pytest.raises(ValueError) as excinfo:
+        a = contact.Contact(email=[])
+    assert "initialization parameters" in str(excinfo.value)
 
 
 def test_with_first_name() -> None:
@@ -32,6 +35,18 @@ def test_with_email() -> None:
     assert b.first_name == "kevin"
     assert b.last_name == "goldsmith"
     assert b.email[0] == "kevin.goldsmith@devnull.com"
+
+
+def test_with_email_list() -> None:
+    a = contact.Contact(email=["kevin@devnull.com"])
+    assert a.first_name == "kevin"
+    assert not a.last_name
+    assert a.email[0] == "kevin@devnull.com"
+
+    b = contact.Contact(email=["kevin@devnull.com", "kevin.goldsmith@devnull.com"])
+    assert b.first_name == "kevin"
+    assert b.last_name == "goldsmith"
+    assert b.email[1] == "kevin.goldsmith@devnull.com"
 
 
 def test_with_all() -> None:
@@ -79,3 +94,11 @@ def test_merge() -> None:
     e = contact.Contact("kevin", "goldsmith", "pa@devnull.com")
     e.email.append("foo@devnull.com")
     assert a == e
+
+
+def test_to_dict() -> None:
+    b = contact.Contact(email=["kevin@devnull.com", "kevin.goldsmith@devnull.com"])
+    d = b.to_dict()
+    assert d["first_name"] == "kevin"
+    assert d["last_name"] == "goldsmith"
+    assert d["email"][1] == "kevin.goldsmith@devnull.com"

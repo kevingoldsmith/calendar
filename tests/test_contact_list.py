@@ -1,6 +1,9 @@
-import pytest
+import os
+
 import contact
 import contact_list
+
+import pathlib
 
 
 def test_init() -> None:
@@ -40,3 +43,28 @@ def test_add() -> None:
             found_kevin = True
             break
         assert found_kevin
+
+
+def test_save_to_file(tmp_path: pathlib.Path) -> None:
+    list = contact_list.ContactList()
+    list.add(contact.Contact("kevin", "goldsmith", "foo@devnull.com"))
+    list.add(contact.Contact("fred", "flintstone", "ff@aol.com"))
+    list.add(contact.Contact("Barney", "Rubble", "br@foobar.org"))
+    test_file_name = str(tmp_path / "testfile.csv")
+    list.save_to_file(test_file_name)
+
+    assert os.path.exists(test_file_name)
+
+
+def test_load_from_file(tmp_path: pathlib.Path) -> None:
+    list = contact_list.ContactList()
+    list.add(contact.Contact("kevin", "goldsmith", "foo@devnull.com"))
+    list.add(contact.Contact("fred", "flintstone", "ff@aol.com"))
+    list.add(contact.Contact("Barney", "Rubble", ["br@foobar.org", "wqeqw@qweqw.qweq"]))
+    test_file_name = str(tmp_path / "testfile.csv")
+    list.save_to_file(test_file_name)
+
+    list2 = contact_list.ContactList()
+    list2.load_from_file(test_file_name)
+    assert len(list2.contacts) == 3
+    assert list2.contacts[2] == list.contacts[2]

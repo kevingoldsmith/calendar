@@ -2,6 +2,8 @@
     Contact class for a person
 """
 
+from typing import List
+
 """
 outlook_csv_properties = [
     'First Name', 'Middle Name', 'Last Name', 'Title', 'Suffix', 'Initials', 'Web Page',
@@ -30,7 +32,7 @@ class Contact:
     """
 
     def __init__(
-        self, first_name: str = "", last_name: str = "", email: str = ""
+        self, first_name: str = "", last_name: str = "", email: str | List[str] = ""
     ) -> None:
         """
         __init__ initialize a contact with names and an e-mail address. If only the
@@ -47,17 +49,21 @@ class Contact:
         if len(first_name) + len(last_name) + len(email) == 0:
             raise ValueError("all initialization parameters are empty")
         if email:
-            self.email = [email]
+            if isinstance(email, str):
+                self.email = [email]
+            else:
+                self.email = email
         else:
             self.email = []
         if email and (not first_name and not last_name):
-            at_pos = email.find("@")
-            name = email[:at_pos]
-            period_pos = name.find(".")
-            if period_pos > -1:
-                self.first_name = name[:period_pos]
-                self.last_name = name[period_pos + 1 :]
-            else:
+            for addy in self.email:
+                at_pos = addy.find("@")
+                name = addy[:at_pos]
+                period_pos = name.find(".")
+                if period_pos > -1:
+                    self.first_name = name[:period_pos]
+                    self.last_name = name[period_pos + 1 :]
+                    break
                 self.first_name = name
                 self.last_name = ""
         else:
@@ -113,3 +119,12 @@ class Contact:
         self.email.extend(other.email)
         if len(self.email) > 0:
             self.email = list(set(self.email))
+
+    def to_dict(self) -> dict:
+        """
+        to_dict get a dictionary representation of the object
+
+        Returns:
+            dict: the dictionary
+        """
+        return vars(self)

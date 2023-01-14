@@ -1,6 +1,9 @@
 """
     a list of contacts
 """
+from copy import deepcopy
+import csv
+import os
 from typing import List
 
 from contact import Contact
@@ -38,3 +41,53 @@ class ContactList:
             self.contacts[index].merge(new_contact)
         else:
             self.contacts.append(new_contact)
+
+    def load_from_file(self, filename: str = "contacts.csv") -> None:
+        """
+        load_from_file _summary_
+
+        Args:
+            filename (str, optional): _description_. Defaults to 'contacts.csv'.
+
+        Raises:
+            FileNotFoundError: if the file does not exist
+        """
+        if not os.path.exists(filename):
+            raise FileNotFoundError(f"file does not exist{filename}")
+        with open(filename, "r", encoding="utf-8") as file:
+            csvreader = csv.DictReader(file, dialect="excel")
+            for row in csvreader:
+                emails = []
+                for key in row.keys():
+                    if key.startswith("email") and len(row[key]) > 0:
+                        emails.append(row[key])
+                self.contacts.append(
+                    Contact(row["first_name"], row["last_name"], emails)
+                )
+
+    def save_to_file(self, filename: str = "contacts.csv") -> None:
+        """
+        save_to_file save the contents of the list to a csv file
+
+        Args:
+            filename (str, optional): the file to save to. Defaults to 'contacts.csv'.
+        """
+        # find the highest number of e-mail addresses
+        email_count = 0
+        for contact_item in self.contacts:
+            if len(contact_item.email) > email_count:
+                email_count = len(contact_item.email)
+        field_names = ["first_name", "last_name"]
+        for i in range(0, email_count):
+            field_names.append(f"email_{i+1}")
+        with open(filename, "w", encoding="utf-8") as file:
+            csvwriter = csv.DictWriter(file, fieldnames=field_names, dialect="excel")
+            csvwriter.writeheader()
+            for contact_item in self.contacts:
+                row_dict = deepcopy(contact_item.to_dict())
+                i = 1
+                for email_addr in row_dict["email"]:
+                    row_dict[f"email_{i}"] = email_addr
+                    i = i + 1
+                del row_dict["email"]
+                csvwriter.writerow(row_dict)
