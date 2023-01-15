@@ -4,6 +4,7 @@
 import argparse
 import configparser
 import logging
+import os
 from typing import Dict, Any, TextIO
 
 from icalendar import Calendar  # type: ignore
@@ -11,16 +12,20 @@ import recurring_ical_events  # type: ignore
 import x_wr_timezone  # type: ignore
 
 from contact import Contact
+from contact_list import ContactList
 
 _DEFAULT_DATA_DIR = "data"
 _CONFIG_FILE = "parse_calendar.ini"
 _LOG_FILE = "parse_calendar.log"
 _CONSOLE_LEVEL = logging.INFO
 _FILE_LEVEL = logging.INFO
+_CONTACTS_FILE = _DEFAULT_DATA_DIR + "/" + "contacts.csv"
 
 _logger = logging.getLogger(
     __name__ if __name__ != "__main__" else "parse_calendar"
 )  # pylint: disable=C0103
+
+_contact_list = ContactList()
 
 
 def load_config_file(base_config: dict) -> configparser.ConfigParser:
@@ -51,6 +56,13 @@ def load_config_file(base_config: dict) -> configparser.ConfigParser:
         base_config["logfile_name"] = logging_config.get(
             "logfile_name", base_config["logfile_name"]
         )
+
+    if "contacts" in parser:
+        contacts_config = parser["contacts"]
+        base_config["contacts_file"] = contacts_config.get(
+            "contacts_file", base_config["contacts_file"]
+        )
+
     return parser
 
 
@@ -95,6 +107,33 @@ def initialize_logging(
         _logger.addHandler(file_handler)
 
 
+def initialize_contact_list(contact_file_path: str) -> None:
+    """
+    initialize_contact_list initialize the contact list with existing contacts
+
+    Args:
+        contact_file_path (str): filepath to the contacts file
+    """
+    if os.path.exists(contact_file_path):
+        _contact_list.load_from_file(contact_file_path)
+    else:
+        _logger.debug("contact file does not exist: %s", contact_file_path)
+
+
+def save_contact_list(contact_file_path: str) -> None:
+    """
+    save_contact_list save the contacts to a file to reference for next runs
+
+    Args:
+        contact_file_path (str): path to the destination file
+    """
+    if not os.path.exists(contact_file_path):
+        dir_name = os.path.dirname(contact_file_path)
+        os.makedirs(dir_name, exist_ok=True)
+    _logger.debug("saving contacts list: %s", contact_file_path)
+    _contact_list.save_to_file(contact_file_path)
+
+
 def get_person(event_person: str) -> Contact | None:
     """
     get_person given a person from an event, return a Contact object or None
@@ -107,6 +146,9 @@ def get_person(event_person: str) -> Contact | None:
     """
     if event_person.startswith("mailto:"):
         email = event_person[7:]
+        if email.endswith("calendar.google.com"):
+            _logger.debug("google calendar utility mail ignored %s", email)
+            return None
         return Contact(email=email)
     _logger.error("person from contact doesn't start with mailto: %s", event_person)
     return None
@@ -132,13 +174,16 @@ def main(calendar_file: TextIO) -> None:
         #        if "description" in event:
         #            print("\t" + event["description"])
         #        print(f"\ttimestamp:{event['dtstamp'].dt}")
+        person = None
         if "attendee" in event:
             for attendee in event["attendee"]:
-                print(get_person(attendee))
-                # print(f"\tattendee: {attendee}")
+                person = get_person(attendee)
+                if person:
+                    _contact_list.add(person)
         if "organizer" in event:
-            print(get_person(event["organizer"]))
-            # print(f"\torganizer: {event['organizer']}")
+            person = get_person(event["organizer"])
+            if person:
+                _contact_list.add(person)
 
 
 # when run as a script, do initialization
@@ -147,6 +192,7 @@ if __name__ == "__main__":
         "logfile_name": _LOG_FILE,
         "console_log_level": _CONSOLE_LEVEL,
         "logfile_log_level": _FILE_LEVEL,
+        "contacts_file": _CONTACTS_FILE,
     }
     config_parser = load_config_file(config)
 
@@ -166,4 +212,7 @@ if __name__ == "__main__":
     initialize_logging(
         config["logfile_name"], config["console_log_level"], config["logfile_log_level"]
     )
+
+    initialize_contact_list(config["contacts_file"])
     main(ns.calendar_file)
+    save_contact_list(config["contacts_file"])
