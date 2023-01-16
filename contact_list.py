@@ -37,27 +37,30 @@ class ContactList:
             new_contact (Contact): the contact object to add
 
         Raises:
-            KeyError: if the new_contact contains multiple e-mail addresses and they map to different contacts
+            KeyError: if the new_contact contains multiple e-mail addresses and they
+            map to different contacts
         """
         if len(new_contact.email) > 1:
             contact_match = None
-            for em in new_contact.email:
-                c = self.find_by_email(em)
+            for email in new_contact.email:
+                test_contact = self.find_by_email(email)
                 if not contact_match:
-                    contact_match = c
-                elif c != contact_match:
-                    raise KeyError("more than one contact mapping to the addresses in this contact")
+                    contact_match = test_contact
+                elif test_contact != contact_match:
+                    raise KeyError(
+                        "more than one contact mapping to the addresses in this contact"
+                    )
 
-        c = self.find_by_email(new_contact.email[0])
-        if c:
-            c.merge(new_contact)
+        match_contact = self.find_by_email(new_contact.email[0])
+        if match_contact:
+            match_contact.merge(new_contact)
         elif new_contact in self.contacts:
             index = self.contacts.index(new_contact)
             self.contacts[index].merge(new_contact)
         else:
             self.contacts.append(new_contact)
 
-    def find_by_email(self, email: str) -> Contact|None:
+    def find_by_email(self, email: str) -> Contact | None:
         """
         find_by_email see if there is a contact for a given e-mail address, they should be unique
 
