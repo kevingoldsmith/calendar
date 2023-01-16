@@ -35,12 +35,42 @@ class ContactList:
 
         Args:
             new_contact (Contact): the contact object to add
+
+        Raises:
+            KeyError: if the new_contact contains multiple e-mail addresses and they map to different contacts
         """
-        if new_contact in self.contacts:
+        if len(new_contact.email) > 1:
+            contact_match = None
+            for em in new_contact.email:
+                c = self.find_by_email(em)
+                if not contact_match:
+                    contact_match = c
+                elif c != contact_match:
+                    raise KeyError("more than one contact mapping to the addresses in this contact")
+
+        c = self.find_by_email(new_contact.email[0])
+        if c:
+            c.merge(new_contact)
+        elif new_contact in self.contacts:
             index = self.contacts.index(new_contact)
             self.contacts[index].merge(new_contact)
         else:
             self.contacts.append(new_contact)
+
+    def find_by_email(self, email: str) -> Contact|None:
+        """
+        find_by_email see if there is a contact for a given e-mail address, they should be unique
+
+        Args:
+            email (str): the e-mail to search for
+
+        Returns:
+            Contact|None: the Contact if there is one, otherwise None
+        """
+        for contact in self.contacts:
+            if email in contact.email:
+                return contact
+        return None
 
     def load_from_file(self, filename: str = "contacts.csv") -> None:
         """

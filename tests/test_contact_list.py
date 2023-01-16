@@ -1,9 +1,10 @@
 import os
+import pytest
+
+import pathlib
 
 import contact
 import contact_list
-
-import pathlib
 
 
 def test_init() -> None:
@@ -43,6 +44,25 @@ def test_add() -> None:
             found_kevin = True
             break
         assert found_kevin
+
+def test_add_invalid() -> None:
+    list = contact_list.ContactList()
+    list.add(contact.Contact("kevin", "goldsmith", "foo@devnull.com"))
+    list.add(contact.Contact("fred", "flintstone", "ff@aol.com"))
+    list.add(contact.Contact("Barney", "Rubble", ["br@foobar.org", "wqeqw@qweqw.qweq"]))
+    with pytest.raises(KeyError) as excinfo:
+        list.add(contact.Contact("toby", "mcquire", ["br@foobar.org", "ff@aol.com"]))
+    assert "more than one contact mapping to the addresses in this contact" in str(excinfo.value)
+
+
+def test_find_by_email() -> None:
+    list = contact_list.ContactList()
+    list.add(contact.Contact("kevin", "goldsmith", ["foo@devnull.com", "blah@devnull.com"]))
+    list.add(contact.Contact("fred", "flintstone", "ff@aol.com"))
+    list.add(contact.Contact("Barney", "Rubble", "br@foobar.org"))
+    assert not list.find_by_email('qweqweqwe')
+    assert list.find_by_email("br@foobar.org") == contact.Contact("Barney", "Rubble", "br@foobar.org")
+    assert list.find_by_email("blah@devnull.com") == contact.Contact("kevin", "goldsmith", ["foo@devnull.com", "blah@devnull.com"])
 
 
 def test_save_to_file(tmp_path: pathlib.Path) -> None:
