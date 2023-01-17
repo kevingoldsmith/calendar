@@ -11,6 +11,7 @@ from icalendar import Calendar  # type: ignore
 import recurring_ical_events  # type: ignore
 import x_wr_timezone  # type: ignore
 
+from calendar_event import CalendarEvent
 from contact import Contact
 from contact_list import ContactList
 
@@ -169,12 +170,7 @@ def main(calendar_file: TextIO) -> None:
         if event["status"] != "CONFIRMED":
             continue
 
-        #        print(event["summary"])
-        #        print(f"\t{event['dtstart'].dt} - {event['dtend'].dt}")
-        #        if "description" in event:
-        #            print("\t" + event["description"])
-        #        print(f"\ttimestamp:{event['dtstamp'].dt}")
-        person = None
+        cal_event = CalendarEvent(event)
         if "attendee" in event:
             for attendee in event["attendee"]:
                 person = get_person(attendee)
@@ -184,6 +180,7 @@ def main(calendar_file: TextIO) -> None:
             person = get_person(event["organizer"])
             if person:
                 _contact_list.add(person)
+        print(cal_event)
 
 
 # when run as a script, do initialization
