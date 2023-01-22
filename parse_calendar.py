@@ -135,26 +135,6 @@ def save_contact_list(contact_file_path: str) -> None:
     _contact_list.save_to_file(contact_file_path)
 
 
-def get_person(event_person: str) -> Contact | None:
-    """
-    get_person given a person from an event, return a Contact object or None
-
-    Args:
-        event_person (str): the contact string
-
-    Returns:
-        Contact|None: a Contact object or None if one could not be constructed
-    """
-    if event_person.startswith("mailto:"):
-        email = event_person[7:]
-        if email.endswith("calendar.google.com"):
-            _logger.debug("google calendar utility mail ignored %s", email)
-            return None
-        return Contact(email=email)
-    _logger.error("person from contact doesn't start with mailto: %s", event_person)
-    return None
-
-
 def main(calendar_file: TextIO) -> None:
     """main application logic"""
     start_date = (2023, 1, 1)
@@ -171,16 +151,11 @@ def main(calendar_file: TextIO) -> None:
             continue
 
         cal_event = CalendarEvent(event)
-        if "attendee" in event:
-            for attendee in event["attendee"]:
-                person = get_person(attendee)
-                if person:
-                    _contact_list.add(person)
-        if "organizer" in event:
-            person = get_person(event["organizer"])
-            if person:
-                _contact_list.add(person)
-        print(cal_event)
+        for attendee in cal_event.attendees:
+            _contact_list.add(Contact(email=attendee))
+        if cal_event.organizer:
+            _contact_list.add(Contact(email=cal_event.organizer))
+        _logger.debug("added event: %s", cal_event)
 
 
 # when run as a script, do initialization
