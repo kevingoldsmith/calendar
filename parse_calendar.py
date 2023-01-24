@@ -3,9 +3,10 @@
 
 import argparse
 import configparser
+import csv
 import logging
 import os
-from typing import Dict, Any, TextIO
+from typing import Dict, Any, TextIO, List
 
 from icalendar import Calendar  # type: ignore
 import recurring_ical_events  # type: ignore
@@ -27,6 +28,7 @@ _logger = logging.getLogger(
 )  # pylint: disable=C0103
 
 _contact_list = ContactList()
+_calendar_event_list = []
 
 
 def load_config_file(base_config: dict) -> configparser.ConfigParser:
@@ -135,6 +137,16 @@ def save_contact_list(contact_file_path: str) -> None:
     _contact_list.save_to_file(contact_file_path)
 
 
+def save_calendar_list(calendar_item_list:List[CalendarEvent]) -> None:
+    cal_dict_list = []
+    for cal_event in calendar_item_list:
+        cal_dict_list.append(cal_event.dict_for_csv())
+    with open("cal.csv", "w", encoding="utf-8") as file:
+        csvwriter = csv.DictWriter(file, fieldnames=cal_dict_list[0].keys(), dialect="excel")
+        csvwriter.writeheader()
+        csvwriter.writerows(cal_dict_list)
+
+
 def main(calendar_file: TextIO) -> None:
     """main application logic"""
     start_date = (2023, 1, 1)
@@ -155,7 +167,9 @@ def main(calendar_file: TextIO) -> None:
             _contact_list.add(Contact(email=attendee))
         if cal_event.organizer:
             _contact_list.add(Contact(email=cal_event.organizer))
-        _logger.debug("added event: %s", cal_event)
+        _calendar_event_list.append(cal_event)
+        _logger.debug("added event: %s", cal_event.dict_for_csv())
+    save_calendar_list(_calendar_event_list)
 
 
 # when run as a script, do initialization

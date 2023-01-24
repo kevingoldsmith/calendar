@@ -65,3 +65,14 @@ class CalendarEvent:
             dict: the dictionary
         """
         return vars(self)
+
+    def dict_for_csv(self) -> dict:
+        return_dict = {}
+        return_dict["summary"] = str(self.summary)
+        return_dict["start"] = str(self.start)
+        return_dict["end"] = str(self.end)
+        return_dict["timestamp"] = str(self.timestamp)
+        return_dict["description"] = str(self.description)
+        return_dict["organizer"] = self.organizer
+        return_dict["attendees"] = ','.join(self.attendees)
+        return return_dict
